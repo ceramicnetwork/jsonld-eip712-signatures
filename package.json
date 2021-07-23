@@ -1,0 +1,44 @@
+{
+  "name": "jsonld-eip712-signatures",
+  "version": "0.0.1",
+  "description": "Experiments with using JSON-LD signature schemes with EIP712 structured data ",
+  "main": "lib/index",
+  "types": "lib/index",
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "test": "jest --coverage",
+    "build": "./node_modules/.bin/tsc -p tsconfig.json",
+    "prebuild": "npm run clean",
+    "lint": "./node_modules/.bin/eslint ./src --ext .js,.jsx,.ts,.tsx",
+    "clean": "rm -rf ./lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ceramicnetwork/jsonld-eip712-signatures.git"
+  },
+  "author": "Haardik <hhaardik@uwaterloo.ca>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ceramicnetwork/jsonld-eip712-signatures/issues"
+  },
+  "homepage": "https://github.com/ceramicnetwork/jsonld-eip712-signatures#readme",
+  "devDependencies": {
+    "@babel/core": "^7.14.8",
+    "@babel/preset-env": "^7.14.8",
+    "@babel/preset-typescript": "^7.14.5",
+    "@types/jest": "^26.0.24",
+    "@types/node": "^16.4.1",
+    "@typescript-eslint/eslint-plugin": "^4.28.4",
+    "babel-jest": "^27.0.6",
+    "eslint": "^7.31.0",
+    "eslint-plugin-jest": "^24.4.0",
+    "ethers": "^5.4.1",
+    "jest": "^27.0.6",
+    "typescript": "^4.3.5"
+  }
+}
