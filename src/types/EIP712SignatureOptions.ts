@@ -6,5 +6,6 @@ import {
 export interface EIP712SignatureOptions {
   domain: TypedDataDomain;
   types: Record<string, Array<TypedDataField>>;
-  value: Record<string, any>;
+  message: Record<string, any>;
+  primaryType: string;
 }
