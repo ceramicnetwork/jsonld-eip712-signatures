@@ -9,6 +9,8 @@ import { c14nDocumentToEip712StructuredDataTypes, w3cDate } from "./utils";
 import { CreateVerifyDataOptions } from "./types/CreateVerifyDataOptions";
 import jcs from "canonicalize";
 import { EIP712SignatureOptions } from "./types/EIP712SignatureOptions";
+import { VerifyProofOptions } from "./types/VerifyProofOptions";
+import { VerifyProofResult } from "./types/VerifyProofResult";
 
 export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
   proof: Record<string, any>;
@@ -73,18 +75,13 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
       expansionMap: options.expansionMap,
     });
 
-    const domain = {
-      name: "https://example.com",
-      version: "2",
-      chainId: 4,
-      salt: "0x000000000000000000000000000000000000000000000000aaaabbbbccccdddd",
-    };
+    let domain = options.domain ?? {};
+    let types =
+      options.types ??
+      c14nDocumentToEip712StructuredDataTypes(options.document);
 
     const toBeSignedDocument: EIP712SignatureOptions = {
-      types: {
-        ...c14nDocumentToEip712StructuredDataTypes(options.document),
-        // TODO: Eip712Domain here???
-      },
+      types,
       domain,
       primaryType: "Document",
       message: options.document,
@@ -105,17 +102,53 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     return proof;
   }
 
-  // TODO: Stricter types
+  async verifyProof(options: VerifyProofOptions): Promise<VerifyProofResult> {
+    const { proof, document } = options;
 
-  async verifyProof(data: any): Promise<any> {
-    return "Not implemented";
+    let domain = options.domain ?? {};
+    let types =
+      options.types ?? c14nDocumentToEip712StructuredDataTypes(document);
+
+    const toBeVerifiedDocument: EIP712SignatureOptions = {
+      types,
+      domain,
+      primaryType: "Document",
+      message: document,
+    };
+
+    try {
+      const [c14nProof, c14nDocument] = await this.createVerifyData({
+        proof,
+        document: toBeVerifiedDocument,
+      });
+
+      const vm = this.getVerificationMethod(JSON.parse(c14nProof));
+
+      const verified = this.verifySignature({
+        signature: proof[this.proofSignatureKey],
+        verificationMethod: vm,
+        ...JSON.parse(c14nDocument),
+      });
+
+      if (!verified) {
+        throw Error(`Invalid signature`);
+      }
+
+      if (!(await options.purpose.match(JSON.parse(c14nProof), {}))) {
+        throw Error(`Invalid purpose`);
+      }
+
+      return { verified: true };
+    } catch (error) {
+      return { verified: false, error };
+    }
   }
 
-  async canonize(input: any): Promise<string> {
+  canonize(input: any): string {
     return jcs(input);
   }
 
-  async canonizeProof(proof: any): Promise<string> {
+  canonizeProof(proof: any): string {
     proof = { ...proof };
     delete proof[this.proofSignatureKey];
     return this.canonize(proof);
@@ -124,14 +157,25 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
   async createVerifyData(options: CreateVerifyDataOptions): Promise<string[]> {
     const { proof, document } = options;
 
-    const c14nProof = await this.canonizeProof(proof);
-    const c14nDocument = await this.canonize(document);
+    const c14nProof = this.canonizeProof(proof);
+    const c14nDocument = this.canonize(document);
 
     return [c14nProof, c14nDocument];
   }
 
-  async getVerificationMethod(data: any): Promise<any> {
-    return "Not implemented";
+  getVerificationMethod(proof: any): string {
+    let verificationMethod = proof.verificationMethod;
+
+    if (typeof verificationMethod === "object") {
+      verificationMethod = verificationMethod.id;
+    }
+
+    if (!verificationMethod) {
+      throw new Error('No "verificationMethod" found in proof.');
+    }
+
+    // TODO: resolve DID to check if revoked?
+    return verificationMethod;
   }
 
   async sign(options: SuiteSignOptions): Promise<Record<string, any>> {
@@ -166,10 +210,23 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
 
     if (
       recoveredAddress.toLowerCase() ===
-      options.verificationMethod.split("#")[0].toLowerCase()
+      this.extractAddressFromDID(options.verificationMethod).toLowerCase()
     ) {
       return true;
     }
     return false;
+  }
+
+  extractAddressFromDID(did: string): string {
+    let address = did;
+    if (address.startsWith("did")) {
+      address = did.split(":")[2];
+    }
+
+    if (address.includes("#")) {
+      address = address.split("#")[0];
+    }
+
+    return address;
   }
 }

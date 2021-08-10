@@ -1,4 +1,3 @@
-import { EIP712SignatureOptions } from "./types/EIP712SignatureOptions";
 import { TypedDataField } from "@ethersproject/abstract-signer";
 
 export function w3cDate(date?: number | string): string {
@@ -31,20 +30,22 @@ export function c14nDocumentToEip712StructuredDataTypes(
       case "number":
         types.push({
           name: key,
-          type: "uint256",
+          type: "uint256", // uint8 all the way up to uint256
         });
         break;
       case "string":
         types.push({
           name: key,
-          type: "string",
+          type: "string", // string and bytes8 to bytes32 and address (isEthAddress(xyz))
         });
+        break;
+      case "object":
         break;
       default:
         if (Array.isArray(inputCopy[key])) {
           types.push({
             name: key,
-            type: "string[]",
+            type: "string[]", // same for arrays ^
           });
         } else {
           throw TypeError(`Unsupported type ${key} | ${inputCopy[key]}`);

@@ -33,7 +33,7 @@ describe("EthereumEip712Signature2021", () => {
   it("should successfully do a low-level sign and verify", async () => {
     const wallet = Wallet.createRandom();
     const address = wallet.address;
-    const vm = `${address}#controller`;
+    const vm = `did:ethr:${address}#controller`;
     const s = new EthereumEip712Signature2021({
       signer: wallet,
       verificationMethod: vm,
@@ -91,15 +91,18 @@ describe("EthereumEip712Signature2021", () => {
       verificationMethod: vm,
     });
 
-    expect(valid).toBe(true);
+    expect(valid).toEqual(true);
   });
   it("should create proof", async () => {
     const wallet = Wallet.createRandom();
     const address = wallet.address;
-    const vm = `${address}#controller`;
+    const vm = `did:ethr:${address}#controller`;
+    const date = new Date();
+
     const s = new EthereumEip712Signature2021({
       signer: wallet,
       verificationMethod: vm,
+      date,
     });
 
     const jsonLdDocument = {
@@ -115,11 +118,19 @@ describe("EthereumEip712Signature2021", () => {
     try {
       const res = await s.createProof({
         document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
+        purpose: new purposes.AssertionProofPurpose(), // assertionmethod
         compactProof: false,
         documentLoader: customDocLoader,
       });
-      console.log("Result: ", JSON.stringify(res, null, 2));
+
+      const v = await s.verifyProof({
+        proof: res,
+        document: jsonLdDocument,
+        purpose: new purposes.AssertionProofPurpose(), // assertionmethod
+        documentLoader: customDocLoader,
+      });
+
+      expect(v.verified).toEqual(true);
     } catch (error) {
       console.error(error);
     }
