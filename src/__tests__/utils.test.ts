@@ -1,6 +1,6 @@
 import { c14nDocumentToEip712StructuredDataTypes } from "../utils";
 
-describe.only("Utilities Tests", () => {
+describe("Utilities Tests", () => {
   it("Should support primitive types", () => {
     const jsonLddocument = {
       "@type": "Person",

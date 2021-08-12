@@ -1,8 +1,12 @@
-import { TypedDataField } from "@ethersproject/abstract-signer";
+import {
+  TypedDataField,
+  TypedDataDomain,
+} from "@ethersproject/abstract-signer";
 
 export interface CreateProofOptions {
-  domain?: any;
+  domain?: TypedDataDomain;
   types?: Record<string, TypedDataField[]>;
+  primaryType?: string;
   readonly document: any;
   readonly purpose: any;
   documentLoader?: Function;

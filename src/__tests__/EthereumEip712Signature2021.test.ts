@@ -118,7 +118,7 @@ describe("EthereumEip712Signature2021", () => {
     try {
       const res = await s.createProof({
         document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(), // assertionmethod
+        purpose: new purposes.AssertionProofPurpose(),
         compactProof: false,
         documentLoader: customDocLoader,
       });
@@ -126,7 +126,7 @@ describe("EthereumEip712Signature2021", () => {
       const v = await s.verifyProof({
         proof: res,
         document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(), // assertionmethod
+        purpose: new purposes.AssertionProofPurpose(),
         documentLoader: customDocLoader,
       });
 

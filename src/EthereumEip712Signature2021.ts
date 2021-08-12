@@ -79,11 +79,12 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     let types =
       options.types ??
       c14nDocumentToEip712StructuredDataTypes(options.document);
+    const primaryType = options.primaryType ?? "Document";
 
     const toBeSignedDocument: EIP712SignatureOptions = {
       types,
       domain,
-      primaryType: "Document",
+      primaryType,
       message: options.document,
     };
 
