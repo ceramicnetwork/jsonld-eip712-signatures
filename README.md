@@ -21,7 +21,6 @@ Based on https://w3c-ccg.github.io/ethereum-eip712-signature-2021-spec/
 
   - https://github.com/ceramicnetwork/js-dag-jose-utils/blob/master/src/index.ts#L15
 
-- add verifyProof
 - add nested structures support
 - add optional variables
 - move more thigns to function params instead of constructor

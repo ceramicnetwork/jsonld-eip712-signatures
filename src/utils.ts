@@ -17,7 +17,6 @@ export function c14nDocumentToEip712StructuredDataTypes(
 
   const inputCopy = { ...input };
 
-  // TODO: support nested types
   for (let key in inputCopy) {
     switch (typeof inputCopy[key]) {
       case "boolean":
@@ -26,27 +25,60 @@ export function c14nDocumentToEip712StructuredDataTypes(
           type: "bool",
         });
         break;
-
       case "number":
         types.push({
           name: key,
-          type: "uint256", // uint8 all the way up to uint256
+          type: "uint256",
         });
         break;
       case "string":
         types.push({
           name: key,
-          type: "string", // string and bytes8 to bytes32 and address (isEthAddress(xyz))
+          type: "string",
         });
-        break;
-      case "object":
         break;
       default:
         if (Array.isArray(inputCopy[key])) {
+          if (allSameType(inputCopy[key])) {
+            let type: string;
+            switch (typeof inputCopy[key][0]) {
+              case "boolean":
+                type = "bool[]";
+                break;
+              case "number":
+                type = "uint256[]";
+                break;
+              case "string":
+                type = "string[]";
+                break;
+              default:
+                throw new Error("Unsupported type");
+            }
+            types.push({
+              name: key,
+              type: type,
+            });
+          } else {
+            throw new Error("Array of mixed types are not supported");
+          }
+        } else if (typeof inputCopy[key] === "object") {
+          let _recursiveStructuredData =
+            c14nDocumentToEip712StructuredDataTypes(inputCopy[key]);
+
+          let _recursiveTypes = _recursiveStructuredData["Document"];
+          const type = key.charAt(0).toUpperCase() + key.slice(1);
           types.push({
             name: key,
-            type: "string[]", // same for arrays ^
+            type: type,
           });
+
+          output[type] = _recursiveTypes;
+
+          for (let otherType in _recursiveStructuredData) {
+            if (otherType !== "Document") {
+              output[otherType] = _recursiveStructuredData[otherType];
+            }
+          }
         } else {
           throw TypeError(`Unsupported type ${key} | ${inputCopy[key]}`);
         }
@@ -56,4 +88,8 @@ export function c14nDocumentToEip712StructuredDataTypes(
   output["Document"] = types;
 
   return output;
+}
+
+function allSameType(arr: any[]): boolean {
+  return new Set(arr.map((x) => typeof x)).size <= 1;
 }
