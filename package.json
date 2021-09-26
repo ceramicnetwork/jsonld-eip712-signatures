@@ -10,6 +10,7 @@
   "files": [
     "lib"
   ],
+  "type": "module",
   "scripts": {
     "test": "jest --coverage",
     "build": "./node_modules/.bin/tsc -p tsconfig.json",
@@ -45,5 +46,10 @@
     "ethers": "^5.4.2",
     "jsonld": "^5.2.0",
     "jsonld-signatures": "^9.3.0"
+  },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "<rootDir>/src/__tests__/fixtures"
+    ]
   }
 }

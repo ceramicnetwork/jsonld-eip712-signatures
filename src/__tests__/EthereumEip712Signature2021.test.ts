@@ -6,11 +6,64 @@ import securityV2Context from "../contexts/securityv2.json";
 import securityV1Context from "../contexts/securityv1.json";
 import schemaOrgContext from "../contexts/schemaOrg.json";
 
+import * as fixtures from "./fixtures";
+
 const documents: any = {
   "https://w3id.org/security#EthereumEip712Signature2021": eip712Context,
   "https://w3id.org/security/v2": securityV2Context,
   "https://w3id.org/security/v1": securityV1Context,
   "https://schema.org": schemaOrgContext,
+  "https://gist.githubusercontent.com/haardikk21/4005830542178141a762c109da5aa774/raw/426335a8c195b8019454385ca1275237af282ab8/messageSchema.json":
+    {
+      Data: [
+        {
+          name: "job",
+          type: "Job",
+        },
+        {
+          name: "name",
+          type: "Name",
+        },
+      ],
+      Document: [
+        {
+          name: "@context",
+          type: "string[]",
+        },
+        {
+          name: "@type",
+          type: "string",
+        },
+        {
+          name: "data",
+          type: "Data",
+        },
+        {
+          name: "telephone",
+          type: "string",
+        },
+      ],
+      Job: [
+        {
+          name: "employer",
+          type: "string",
+        },
+        {
+          name: "jobTitle",
+          type: "string",
+        },
+      ],
+      Name: [
+        {
+          name: "firstName",
+          type: "string",
+        },
+        {
+          name: "lastName",
+          type: "string",
+        },
+      ],
+    },
 };
 
 const customDocLoader = (url: string): any => {
@@ -93,235 +146,293 @@ describe("EthereumEip712Signature2021", () => {
 
     expect(valid).toEqual(true);
   });
-  it("should create and verify proof", async () => {
-    const wallet = Wallet.createRandom();
-    const address = wallet.address;
-    const vm = `did:ethr:${address}#controller`;
-    const date = new Date();
 
-    const s = new EthereumEip712Signature2021({
+  it("should successfully create and verify a proof where schema is embedded", async () => {
+    const wallet = new Wallet(fixtures.test_document.privateKey);
+
+    const suite = new EthereumEip712Signature2021({
       signer: wallet,
-      verificationMethod: vm,
-      date,
+      verificationMethod: fixtures.test_document.verificationMethod,
+      date: fixtures.test_document.inputOptions.date,
     });
 
-    const jsonLdDocument = {
-      "@context": ["https://schema.org", "https://w3id.org/security/v2"],
-      "@type": "Person",
-      firstName: "Jane",
-      lastName: "Does",
-      jobTitle: "Professor",
-      telephone: "(425) 123-4567",
-      email: "jane.doe@example.com",
-    };
-
-    try {
-      const res = await s.createProof({
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        compactProof: false,
-        documentLoader: customDocLoader,
-      });
-
-      const v = await s.verifyProof({
-        proof: res,
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        documentLoader: customDocLoader,
-      });
-
-      expect(v.verified).toEqual(true);
-    } catch (error) {
-      console.error(error);
-    }
-  });
-  it("should create and verify proof over nested data", async () => {
-    const wallet = Wallet.createRandom();
-    const address = wallet.address;
-    const vm = `did:ethr:${address}#controller`;
-    const date = new Date();
-
-    const s = new EthereumEip712Signature2021({
-      signer: wallet,
-      verificationMethod: vm,
-      date,
+    const proof = await suite.createProof({
+      document: fixtures.test_document.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      compactProof: false,
+      documentLoader: customDocLoader,
     });
 
-    const jsonLdDocument = {
-      "@context": ["https://schema.org", "https://w3id.org/security/v2"],
-      "@type": "Person",
-      data: {
-        name: {
-          firstName: "John",
-          lastName: "Doe",
-        },
-        job: {
-          jobTitle: "Professor",
-          employer: "University of Waterloo",
-        },
-      },
-      telephone: "(425) 123-4567",
-    };
+    expect(proof).toEqual(fixtures.test_document.proof);
 
-    try {
-      const res = await s.createProof({
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        compactProof: false,
-        documentLoader: customDocLoader,
-      });
-
-      const v = await s.verifyProof({
-        proof: res,
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        documentLoader: customDocLoader,
-      });
-
-      expect(v.verified).toEqual(true);
-    } catch (error) {
-      console.error(error);
-    }
-  });
-  it("should fail to verify invalid sig", async () => {
-    const wallet = Wallet.createRandom();
-    const address = wallet.address;
-    const vm = `did:ethr:${address}#controller`;
-    const date = new Date();
-
-    const s = new EthereumEip712Signature2021({
-      signer: wallet,
-      verificationMethod: vm,
-      date,
+    const verificationResult = await suite.verifyProof({
+      proof: fixtures.test_document.proof,
+      document: fixtures.test_document.inputDocument,
+      types: fixtures.test_document.proof.eip712Domain.messageSchema,
+      domain: fixtures.test_document.proof.eip712Domain.domain,
+      purpose: new purposes.AssertionProofPurpose(),
+      documentLoader: customDocLoader,
     });
 
-    const jsonLdDocument = {
-      "@context": ["https://schema.org", "https://w3id.org/security/v2"],
-      "@type": "Person",
-      firstName: "Jane",
-      lastName: "Does",
-      jobTitle: "Professor",
-      telephone: "(425) 123-4567",
-      email: "jane.doe@example.com",
-    };
-
-    try {
-      const proof = await s.createProof({
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        compactProof: false,
-        documentLoader: customDocLoader,
-      });
-
-      proof.proofValue = "abc";
-
-      const v = await s.verifyProof({
-        proof: proof,
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        documentLoader: customDocLoader,
-      });
-
-      expect(v.verified).toEqual(false);
-    } catch (error) {
-      console.error(error);
-    }
+    expect(verificationResult.verified).toEqual(true);
   });
-  it("should fail to verify with invalid doc", async () => {
-    const wallet = Wallet.createRandom();
-    const address = wallet.address;
-    const vm = `did:ethr:${address}#controller`;
-    const date = new Date();
 
-    const s = new EthereumEip712Signature2021({
+  it("should create and verify proof over nested data where schema is embedded", async () => {
+    const wallet = new Wallet(fixtures.test_nested_document.privateKey);
+
+    const suite = new EthereumEip712Signature2021({
       signer: wallet,
-      verificationMethod: vm,
-      date,
+      verificationMethod: fixtures.test_nested_document.verificationMethod,
+      date: fixtures.test_nested_document.inputOptions.date,
     });
 
-    const jsonLdDocument = {
-      "@context": ["https://schema.org", "https://w3id.org/security/v2"],
-      "@type": "Person",
-      firstName: "Jane",
-      lastName: "Does",
-      jobTitle: "Professor",
-      telephone: "(425) 123-4567",
-      email: "jane.doe@example.com",
-    };
-
-    const invalidDocument = {
-      "@context": ["https://schema.org", "https://w3id.org/security/v2"],
-      "@type": "Person",
-      firstName: "Jane",
-    };
-
-    try {
-      const proof = await s.createProof({
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        compactProof: false,
-        documentLoader: customDocLoader,
-      });
-
-      proof.proofValue = "abc";
-
-      const v = await s.verifyProof({
-        proof: proof,
-        document: invalidDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        documentLoader: customDocLoader,
-      });
-
-      expect(v.verified).toEqual(false);
-    } catch (error) {
-      console.error(error);
-    }
-  });
-  it("should fail to verify with modified doc", async () => {
-    const wallet = Wallet.createRandom();
-    const address = wallet.address;
-    const vm = `did:ethr:${address}#controller`;
-    const date = new Date();
-
-    const s = new EthereumEip712Signature2021({
-      signer: wallet,
-      verificationMethod: vm,
-      date,
+    const proof = await suite.createProof({
+      document: fixtures.test_nested_document.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      compactProof: false,
+      documentLoader: customDocLoader,
     });
 
-    const jsonLdDocument = {
-      "@context": ["https://schema.org", "https://w3id.org/security/v2"],
-      "@type": "Person",
-      firstName: "Jane",
-      lastName: "Does",
-      jobTitle: "Professor",
-      telephone: "(425) 123-4567",
-      email: "jane.doe@example.com",
-    };
+    expect(proof).toEqual(fixtures.test_nested_document.proof);
 
-    try {
-      const proof = await s.createProof({
-        document: jsonLdDocument,
-        purpose: new purposes.AssertionProofPurpose(),
-        compactProof: false,
-        documentLoader: customDocLoader,
-      });
+    const verificationResult = await suite.verifyProof({
+      proof: fixtures.test_nested_document.proof,
+      types: fixtures.test_nested_document.proof.eip712Domain.messageSchema,
+      domain: fixtures.test_nested_document.proof.eip712Domain.domain,
+      document: fixtures.test_nested_document.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      documentLoader: customDocLoader,
+    });
 
-      proof.proofValue = "abc";
-
-      const v = await s.verifyProof({
-        proof: proof,
-        document: {
-          ...jsonLdDocument,
-          firstName: "John",
-        },
-        purpose: new purposes.AssertionProofPurpose(),
-        documentLoader: customDocLoader,
-      });
-
-      expect(v.verified).toEqual(false);
-    } catch (error) {
-      console.error(error);
-    }
+    expect(verificationResult.verified).toEqual(true);
   });
+
+  it("should create and verify proof over nested data where schema is not embedded", async () => {
+    const wallet = new Wallet(
+      fixtures.test_nested_schema_not_embedded.privateKey
+    );
+
+    const suite = new EthereumEip712Signature2021({
+      signer: wallet,
+      verificationMethod:
+        fixtures.test_nested_schema_not_embedded.verificationMethod,
+      date: fixtures.test_nested_schema_not_embedded.inputOptions.date,
+    });
+
+    const proof = await suite.createProof({
+      document: fixtures.test_nested_schema_not_embedded.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      compactProof: false,
+      documentLoader: customDocLoader,
+    });
+
+    expect(proof).toEqual(fixtures.test_nested_schema_not_embedded.proof);
+
+    const verificationResult = await suite.verifyProof({
+      proof: proof,
+      document: fixtures.test_nested_schema_not_embedded.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      documentLoader: customDocLoader,
+    });
+
+    expect(verificationResult.verified).toEqual(true);
+  });
+
+  it("should create and verify proof over nested data where schema is embedded as a URI", async () => {
+    const wallet = new Wallet(fixtures.test_nested_schema_uri.privateKey);
+
+    const suite = new EthereumEip712Signature2021({
+      signer: wallet,
+      verificationMethod: fixtures.test_nested_schema_uri.verificationMethod,
+      date: fixtures.test_nested_schema_uri.inputOptions.date,
+    });
+
+    const proof = await suite.createProof({
+      document: fixtures.test_nested_schema_uri.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      compactProof: false,
+      documentLoader: customDocLoader,
+    });
+
+    const verificationResult = await suite.verifyProof({
+      proof: proof,
+      types: fixtures.test_nested_schema_uri.proof.eip712Domain.messageSchema,
+      domain: fixtures.test_nested_schema_uri.proof.eip712Domain.domain,
+      document: fixtures.test_nested_schema_uri.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      documentLoader: customDocLoader,
+    });
+
+    expect(verificationResult.verified).toEqual(true);
+  });
+
+  it.only("should create and verify proof over nested data where options are provided", async () => {
+    const wallet = new Wallet(fixtures.test_nested_options_provided.privateKey);
+
+    const suite = new EthereumEip712Signature2021({
+      signer: wallet,
+      verificationMethod:
+        fixtures.test_nested_options_provided.verificationMethod,
+      date: fixtures.test_nested_options_provided.inputOptions.date,
+    });
+
+    const proof = await suite.createProof({
+      document: fixtures.test_nested_options_provided.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      compactProof: false,
+      documentLoader: customDocLoader,
+      types: fixtures.test_nested_options_provided.inputOptions.types,
+      domain: fixtures.test_nested_options_provided.inputOptions.domain,
+    });
+
+    expect(proof).toEqual(fixtures.test_nested_options_provided.proof);
+
+    const verificationResult = await suite.verifyProof({
+      proof: proof,
+      types: fixtures.test_nested_options_provided.inputOptions.types,
+      domain: fixtures.test_nested_options_provided.inputOptions.domain,
+      document: fixtures.test_nested_options_provided.inputDocument,
+      purpose: new purposes.AssertionProofPurpose(),
+      documentLoader: customDocLoader,
+    });
+
+    expect(verificationResult.verified).toEqual(true);
+  });
+  // it("should fail to verify invalid sig", async () => {
+  //   const wallet = Wallet.createRandom();
+  //   const address = wallet.address;
+  //   const vm = `did:ethr:${address}#controller`;
+  //   const date = new Date();
+
+  //   const s = new EthereumEip712Signature2021({
+  //     signer: wallet,
+  //     verificationMethod: vm,
+  //     date,
+  //   });
+
+  //   const jsonLdDocument = {
+  //     "@context": ["https://schema.org", "https://w3id.org/security/v2"],
+  //     "@type": "Person",
+  //     firstName: "Jane",
+  //     lastName: "Does",
+  //     jobTitle: "Professor",
+  //     telephone: "(425) 123-4567",
+  //     email: "jane.doe@example.com",
+  //   };
+
+  //   try {
+  //     const proof = await s.createProof({
+  //       document: jsonLdDocument,
+  //       purpose: new purposes.AssertionProofPurpose(),
+  //       compactProof: false,
+  //       documentLoader: customDocLoader,
+  //     });
+
+  //     proof.proofValue = "abc";
+
+  //     const v = await s.verifyProof({
+  //       proof: proof,
+  //       document: jsonLdDocument,
+  //       purpose: new purposes.AssertionProofPurpose(),
+  //       documentLoader: customDocLoader,
+  //     });
+
+  //     expect(v.verified).toEqual(false);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // });
+  // it("should fail to verify with invalid doc", async () => {
+  //   const wallet = Wallet.createRandom();
+  //   const address = wallet.address;
+  //   const vm = `did:ethr:${address}#controller`;
+  //   const date = new Date();
+
+  //   const s = new EthereumEip712Signature2021({
+  //     signer: wallet,
+  //     verificationMethod: vm,
+  //     date,
+  //   });
+
+  //   const jsonLdDocument = {
+  //     "@context": ["https://schema.org", "https://w3id.org/security/v2"],
+  //     "@type": "Person",
+  //     firstName: "Jane",
+  //     lastName: "Does",
+  //     jobTitle: "Professor",
+  //     telephone: "(425) 123-4567",
+  //     email: "jane.doe@example.com",
+  //   };
+
+  //   const invalidDocument = {
+  //     "@context": ["https://schema.org", "https://w3id.org/security/v2"],
+  //     "@type": "Person",
+  //     firstName: "Jane",
+  //   };
+
+  //   try {
+  //     const proof = await s.createProof({
+  //       document: jsonLdDocument,
+  //       purpose: new purposes.AssertionProofPurpose(),
+  //       compactProof: false,
+  //       documentLoader: customDocLoader,
+  //     });
+
+  //     const v = await s.verifyProof({
+  //       proof: proof,
+  //       document: invalidDocument,
+  //       purpose: new purposes.AssertionProofPurpose(),
+  //       documentLoader: customDocLoader,
+  //     });
+
+  //     expect(v.verified).toEqual(false);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // });
+  // it("should fail to verify with modified doc", async () => {
+  //   const wallet = Wallet.createRandom();
+  //   const address = wallet.address;
+  //   const vm = `did:ethr:${address}#controller`;
+  //   const date = new Date();
+
+  //   const s = new EthereumEip712Signature2021({
+  //     signer: wallet,
+  //     verificationMethod: vm,
+  //     date,
+  //   });
+
+  //   const jsonLdDocument = {
+  //     "@context": ["https://schema.org", "https://w3id.org/security/v2"],
+  //     "@type": "Person",
+  //     firstName: "Jane",
+  //     lastName: "Does",
+  //     jobTitle: "Professor",
+  //     telephone: "(425) 123-4567",
+  //     email: "jane.doe@example.com",
+  //   };
+
+  //   try {
+  //     const proof = await s.createProof({
+  //       document: jsonLdDocument,
+  //       purpose: new purposes.AssertionProofPurpose(),
+  //       compactProof: false,
+  //       documentLoader: customDocLoader,
+  //     });
+
+  //     const v = await s.verifyProof({
+  //       proof: proof,
+  //       document: {
+  //         ...jsonLdDocument,
+  //         firstName: "John",
+  //       },
+  //       purpose: new purposes.AssertionProofPurpose(),
+  //       documentLoader: customDocLoader,
+  //     });
+
+  //     expect(v.verified).toEqual(false);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // });
 });

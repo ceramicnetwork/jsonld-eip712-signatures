@@ -78,7 +78,9 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     let domain = options.domain ?? {};
     let types =
       options.types ??
-      c14nDocumentToEip712StructuredDataTypes(options.document);
+      c14nDocumentToEip712StructuredDataTypes(
+        JSON.parse(this.canonize(options.document))
+      );
     const primaryType = options.primaryType ?? "Document";
 
     const toBeSignedDocument: EIP712SignatureOptions = {
@@ -108,7 +110,14 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
 
     let domain = options.domain ?? {};
     let types =
-      options.types ?? c14nDocumentToEip712StructuredDataTypes(document);
+      options.types ??
+      c14nDocumentToEip712StructuredDataTypes(
+        JSON.parse(this.canonize(document))
+      );
+
+    if (typeof types === "string") {
+      types = options.documentLoader(types).document;
+    }
 
     const toBeVerifiedDocument: EIP712SignatureOptions = {
       types,
@@ -209,6 +218,8 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
       options.signature
     );
 
+    // TODO: add DID resolver (did-resolver)
+
     if (
       recoveredAddress.toLowerCase() ===
       this.extractAddressFromDID(options.verificationMethod).toLowerCase()
@@ -221,7 +232,7 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
   extractAddressFromDID(did: string): string {
     let address = did;
     if (address.startsWith("did")) {
-      address = did.split(":")[2];
+      address = did.split(":").pop();
     }
 
     if (address.includes("#")) {
