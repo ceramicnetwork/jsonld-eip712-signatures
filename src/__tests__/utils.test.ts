@@ -1,4 +1,4 @@
-import { c14nDocumentToEip712StructuredDataTypes } from "../utils";
+import { generateStructuredDataTypes } from "../utils";
 
 describe("Utilities Tests", () => {
   it("Should support primitive types", () => {
@@ -9,7 +9,7 @@ describe("Utilities Tests", () => {
       valid: true,
     };
 
-    const output = c14nDocumentToEip712StructuredDataTypes(jsonLddocument);
+    const output = generateStructuredDataTypes(jsonLddocument);
 
     expect(output).toEqual({
       Document: [
@@ -32,17 +32,17 @@ describe("Utilities Tests", () => {
       email: "jane.doe@example.com",
     };
 
-    const output = c14nDocumentToEip712StructuredDataTypes(jsonLdDocument);
+    const output = generateStructuredDataTypes(jsonLdDocument);
 
     expect(output).toEqual({
       Document: [
         { name: "@context", type: "string[]" },
         { name: "@type", type: "string" },
-        { name: "firstName", type: "string" },
-        { name: "lastName", type: "string" },
-        { name: "jobTitle", type: "string" },
-        { name: "telephone", type: "string" },
         { name: "email", type: "string" },
+        { name: "firstName", type: "string" },
+        { name: "jobTitle", type: "string" },
+        { name: "lastName", type: "string" },
+        { name: "telephone", type: "string" },
       ],
     });
   });
@@ -63,9 +63,17 @@ describe("Utilities Tests", () => {
       email: "jane.doe@example.com",
     };
 
-    const output = c14nDocumentToEip712StructuredDataTypes(jsonLdDocument);
+    const output = generateStructuredDataTypes(jsonLdDocument);
 
     expect(output).toEqual({
+      Document: [
+        { name: "@context", type: "string[]" },
+        { name: "@type", type: "string" },
+        { name: "email", type: "string" },
+        { name: "name", type: "Name" },
+        { name: "otherData", type: "OtherData" },
+        { name: "telephone", type: "string" },
+      ],
       Name: [
         { name: "first", type: "string" },
         { name: "last", type: "string" },
@@ -73,14 +81,6 @@ describe("Utilities Tests", () => {
       OtherData: [
         { name: "jobTitle", type: "string" },
         { name: "school", type: "string" },
-      ],
-      Document: [
-        { name: "@context", type: "string[]" },
-        { name: "@type", type: "string" },
-        { name: "name", type: "Name" },
-        { name: "otherData", type: "OtherData" },
-        { name: "telephone", type: "string" },
-        { name: "email", type: "string" },
       ],
     });
   });
@@ -103,12 +103,19 @@ describe("Utilities Tests", () => {
       email: "jane.doe@example.com",
     };
 
-    const output = c14nDocumentToEip712StructuredDataTypes(jsonLdDocument);
+    const output = generateStructuredDataTypes(jsonLdDocument);
 
     expect(output).toEqual({
       Data: [
         { name: "name", type: "Name" },
         { name: "otherData", type: "OtherData" },
+      ],
+      Document: [
+        { name: "@context", type: "string[]" },
+        { name: "@type", type: "string" },
+        { name: "data", type: "Data" },
+        { name: "email", type: "string" },
+        { name: "telephone", type: "string" },
       ],
       Name: [
         { name: "first", type: "string" },
@@ -118,15 +125,60 @@ describe("Utilities Tests", () => {
         { name: "jobTitle", type: "string" },
         { name: "school", type: "string" },
       ],
+    });
+  });
+
+  it("Should support repeated structs with same name", () => {
+    const document = {
+      a: {
+        foo: {
+          hello: "world",
+        },
+      },
+      b: {
+        foo: {
+          hello: "world",
+        },
+      },
+    };
+
+    const output = generateStructuredDataTypes(document);
+
+    expect(output).toEqual({
+      A: [{ name: "foo", type: "Foo" }],
+      Foo: [{ name: "hello", type: "string" }],
+      B: [{ name: "foo", type: "Foo" }],
       Document: [
-        { name: "@context", type: "string[]" },
-        { name: "@type", type: "string" },
-        { name: "data", type: "Data" },
-        { name: "telephone", type: "string" },
-        { name: "email", type: "string" },
+        { name: "a", type: "A" },
+        { name: "b", type: "B" },
       ],
     });
   });
+
+  // it.only("should support repeated structs with different names", () => {
+  //   const content = {
+  //     a: {
+  //       hello: "world",
+  //     },
+  //     b: {
+  //       hello: "world",
+  //     },
+  //   };
+
+  //   const content2 = {
+  //     foo: {
+  //       foo: {
+  //         foo: "bar",
+  //       },
+  //     },
+  //   };
+
+  //   const output = generateStructuredDataTypes(content);
+  //   const output2 = generateStructuredDataTypes(content2);
+
+  //   console.log(output);
+  //   console.log(output2);
+  // });
 
   it("Should not support mixed arrays", () => {
     const jsonLdDocument = {
@@ -135,7 +187,7 @@ describe("Utilities Tests", () => {
     };
 
     expect(() => {
-      c14nDocumentToEip712StructuredDataTypes(jsonLdDocument);
-    }).toThrowError("Array of mixed types are not supported");
+      generateStructuredDataTypes(jsonLdDocument);
+    }).toThrowError("Arrays of mixed types are not supported");
   });
 });

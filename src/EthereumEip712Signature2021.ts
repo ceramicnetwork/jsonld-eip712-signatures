@@ -5,7 +5,8 @@ import { SignatureSuiteOptions } from "./types/SignatureSuiteOptions";
 import { SuiteSignOptions } from "./types/SuiteSignOptions";
 import { verifyTypedData } from "ethers/lib/utils";
 import { CreateProofOptions } from "./types/CreateProofOptions";
-import { c14nDocumentToEip712StructuredDataTypes, w3cDate } from "./utils";
+import { TypedDataField } from "@ethersproject/abstract-signer";
+import { generateStructuredDataTypes, w3cDate } from "./utils";
 import { CreateVerifyDataOptions } from "./types/CreateVerifyDataOptions";
 import jcs from "canonicalize";
 import { EIP712SignatureOptions } from "./types/EIP712SignatureOptions";
@@ -76,11 +77,7 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     });
 
     let domain = options.domain ?? {};
-    let types =
-      options.types ??
-      c14nDocumentToEip712StructuredDataTypes(
-        JSON.parse(this.canonize(options.document))
-      );
+    let types = options.types ?? generateStructuredDataTypes(options.document);
     const primaryType = options.primaryType ?? "Document";
 
     const toBeSignedDocument: EIP712SignatureOptions = {
@@ -96,8 +93,8 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     });
 
     let signOptions: SuiteSignOptions = {
-      proof: JSON.parse(c14nProof),
-      verifyData: JSON.parse(c14nDocument),
+      proof: c14nProof,
+      verifyData: c14nDocument as EIP712SignatureOptions,
     };
 
     proof = await this.sign(signOptions);
@@ -109,18 +106,14 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     const { proof, document } = options;
 
     let domain = options.domain ?? {};
-    let types =
-      options.types ??
-      c14nDocumentToEip712StructuredDataTypes(
-        JSON.parse(this.canonize(document))
-      );
+    let types = options.types ?? generateStructuredDataTypes(document);
 
     if (typeof types === "string") {
-      types = options.documentLoader(types).document;
+      types = await options.documentLoader(types).document;
     }
 
     const toBeVerifiedDocument: EIP712SignatureOptions = {
-      types,
+      types: types as Record<string, Array<TypedDataField>>,
       domain,
       primaryType: "Document",
       message: document,
@@ -132,19 +125,22 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
         document: toBeVerifiedDocument,
       });
 
-      const vm = this.getVerificationMethod(JSON.parse(c14nProof));
+      const vm = this.getVerificationMethod(c14nProof);
 
       const verified = this.verifySignature({
         signature: proof[this.proofSignatureKey],
         verificationMethod: vm,
-        ...JSON.parse(c14nDocument),
+        domain: c14nDocument.domain,
+        types: c14nDocument.types,
+        message: c14nDocument.message,
+        primaryType: c14nDocument.primaryType
       });
 
       if (!verified) {
         throw Error(`Invalid signature`);
       }
 
-      if (!(await options.purpose.match(JSON.parse(c14nProof), {}))) {
+      if (!(await options.purpose.match(c14nProof), {}))) {
         throw Error(`Invalid purpose`);
       }
 
@@ -154,17 +150,26 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     }
   }
 
-  canonize(input: any): string {
-    return jcs(input);
+  canonize(input: any): Record<string, any> {
+    const ordered = Object.keys(input)
+      .sort()
+      .reduce((obj, key) => {
+        obj[key] = input[key];
+        return obj;
+      }, {});
+    return ordered;
   }
 
-  canonizeProof(proof: any): string {
+  canonizeProof(proof: any): Record<string, any> {
     proof = { ...proof };
     delete proof[this.proofSignatureKey];
+
     return this.canonize(proof);
   }
 
-  async createVerifyData(options: CreateVerifyDataOptions): Promise<string[]> {
+  async createVerifyData(
+    options: CreateVerifyDataOptions
+  ): Promise<Record<string, any>[]> {
     const { proof, document } = options;
 
     const c14nProof = this.canonizeProof(proof);
