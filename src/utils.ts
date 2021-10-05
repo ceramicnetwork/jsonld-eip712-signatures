@@ -58,21 +58,24 @@ export function generateStructuredDataTypes(
           if (Array.isArray(value)) {
             types.push(_generateStructuredDataForArray(value, key));
           } else if (typeof value === "object") {
+            // Generate all types recursively
             const _recursiveStructuredData = generateStructuredDataTypes(value);
-            const _recursiveTypes = _recursiveStructuredData["Document"];
+            const _recursivePrimaryType = _recursiveStructuredData["Document"];
             const type = key.charAt(0).toUpperCase() + key.slice(1);
             types.push({
               name: key,
               type: type,
             });
 
-            output[type] = _recursiveTypes.sort();
+            output[type] = _recursivePrimaryType.sort();
 
             for (let otherType in _recursiveStructuredData) {
+              // For each type that is not the primary type
               if (otherType !== "Document") {
                 const _recursiveOtherTypes =
                   _recursiveStructuredData[otherType].sort();
 
+                // If a type with the same name but different structured data exists, throw
                 if (
                   output[otherType] &&
                   !deepEqual(output[otherType], _recursiveOtherTypes)

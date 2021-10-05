@@ -155,30 +155,26 @@ describe("Utilities Tests", () => {
     });
   });
 
-  // it.only("should support repeated structs with different names", () => {
-  //   const content = {
-  //     a: {
-  //       hello: "world",
-  //     },
-  //     b: {
-  //       hello: "world",
-  //     },
-  //   };
+  it("should support repeated structs with different names", () => {
+    const content = {
+      a: {
+        hello: "world",
+      },
+      b: {
+        hello: "world",
+      },
+    };
+    const output = generateStructuredDataTypes(content);
 
-  //   const content2 = {
-  //     foo: {
-  //       foo: {
-  //         foo: "bar",
-  //       },
-  //     },
-  //   };
-
-  //   const output = generateStructuredDataTypes(content);
-  //   const output2 = generateStructuredDataTypes(content2);
-
-  //   console.log(output);
-  //   console.log(output2);
-  // });
+    expect(output).toEqual({
+      A: [{ name: "hello", type: "string" }],
+      B: [{ name: "hello", type: "string" }],
+      Document: [
+        { name: "a", type: "A" },
+        { name: "b", type: "B" },
+      ],
+    });
+  });
 
   it("Should not support mixed arrays", () => {
     const jsonLdDocument = {

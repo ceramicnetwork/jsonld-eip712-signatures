@@ -1,6 +1,5 @@
 {
   "privateKey": "0x149195a4059ac8cafe2d56fc612f613b6b18b9265a73143c9f6d7cfbbed76b7e",
-  "verificationMethod": "did:pkh:eth:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
   "inputDocument": {
     "@context": ["https://schema.org", "https://w3id.org/security/v2"],
     "@type": "Person",
@@ -11,16 +10,22 @@
     "email": "jane.doe@example.com"
   },
   "inputOptions": {
-    "date": "2021-08-30T13:28:02Z"
+    "date": "2021-08-30T13:28:02Z",
+    "verificationMethod": "did:pkh:eip155:1:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
+    "domain": {
+      "name": "Test"
+    }
   },
   "proof": {
     "created": "2021-08-30T13:28:02Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "verificationMethod": "did:pkh:eth:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
-    "proofValue": "0xd8ced27b921866a9cb6fb859503714ad4be03ae70706237d05c9f113da7f4a1d7f74f9f9df4301571f5c4f253c09e1b5119a85f00760f33924d72a07d31881ec1b",
+    "verificationMethod": "did:pkh:eip155:1:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
+    "proofValue": "0x3d4518532cb589760742045bce8deb57dab474a3db500a7162b53ed43b034ef332e7e7f0c361140c366505e820ee4146f4fdd918e3dd27286f70df6435ab0b821c",
     "eip712Domain": {
-      "domain": {},
+      "domain": {
+        "name": "Test"
+      },
       "messageSchema": {
         "Document": [
           {

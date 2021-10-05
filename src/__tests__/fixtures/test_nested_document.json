@@ -1,6 +1,5 @@
 {
   "privateKey": "0x149195a4059ac8cafe2d56fc612f613b6b18b9265a73143c9f6d7cfbbed76b7e",
-  "verificationMethod": "did:pkh:eth:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
   "inputDocument": {
     "@context": ["https://schema.org", "https://w3id.org/security/v2"],
     "@type": "Person",
@@ -17,16 +16,22 @@
     "telephone": "(425) 123-4567"
   },
   "inputOptions": {
-    "date": "2021-08-30T13:28:02Z"
+    "date": "2021-08-30T13:28:02Z",
+    "verificationMethod": "did:pkh:eip155:1:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
+    "domain": {
+      "name": "Test"
+    }
   },
   "proof": {
     "created": "2021-08-30T13:28:02Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "verificationMethod": "did:pkh:eth:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
-    "proofValue": "0xc932c9f35b465f3f4f208ce7aa3335541ddb1e3d970ed36b9db29c13deadb54d53b5d87eafce0f9df6deb42e9522c079a995166d5c4f711d9ce9b6bde0747a461c",
+    "verificationMethod": "did:pkh:eip155:1:0xAED7EA8035eEc47E657B34eF5D020c7005487443",
+    "proofValue": "0x00ee58c6a5a719a346df6194305bafc94d913a140f9d1a3e429c0a525df1eb8e24366e65ddcfe22e43d00cc6bae33fdf3361b3d6502beeebfe73cd762165236c1c",
     "eip712Domain": {
-      "domain": {},
+      "domain": {
+        "name": "Test"
+      },
       "messageSchema": {
         "Data": [
           {
@@ -36,24 +41,6 @@
           {
             "name": "name",
             "type": "Name"
-          }
-        ],
-        "Document": [
-          {
-            "name": "@context",
-            "type": "string[]"
-          },
-          {
-            "name": "@type",
-            "type": "string"
-          },
-          {
-            "name": "data",
-            "type": "Data"
-          },
-          {
-            "name": "telephone",
-            "type": "string"
           }
         ],
         "Job": [
@@ -73,6 +60,24 @@
           },
           {
             "name": "lastName",
+            "type": "string"
+          }
+        ],
+        "Document": [
+          {
+            "name": "@context",
+            "type": "string[]"
+          },
+          {
+            "name": "@type",
+            "type": "string"
+          },
+          {
+            "name": "data",
+            "type": "Data"
+          },
+          {
+            "name": "telephone",
             "type": "string"
           }
         ]

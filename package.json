@@ -42,7 +42,6 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "canonicalize": "^1.0.5",
     "ethers": "^5.4.2",
     "jsonld": "^5.2.0",
     "jsonld-signatures": "^9.3.0"

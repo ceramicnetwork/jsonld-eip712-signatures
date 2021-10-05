@@ -8,7 +8,6 @@ import { CreateProofOptions } from "./types/CreateProofOptions";
 import { TypedDataField } from "@ethersproject/abstract-signer";
 import { generateStructuredDataTypes, w3cDate } from "./utils";
 import { CreateVerifyDataOptions } from "./types/CreateVerifyDataOptions";
-import jcs from "canonicalize";
 import { EIP712SignatureOptions } from "./types/EIP712SignatureOptions";
 import { VerifyProofOptions } from "./types/VerifyProofOptions";
 import { VerifyProofResult } from "./types/VerifyProofResult";
@@ -17,18 +16,11 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
   proof: Record<string, any>;
   LDKeyClass: any;
   signer: TypedDataSigner;
-  verificationMethod: string;
   proofSignatureKey: string;
-  date: string | number;
 
   constructor(options: SignatureSuiteOptions = {}) {
-    const { verificationMethod, signer, date, LDKeyClass } = options;
-    if (
-      verificationMethod !== undefined &&
-      typeof verificationMethod !== "string"
-    ) {
-      throw TypeError(`"verificationMethod" must be a URI string`);
-    }
+    const {  signer, LDKeyClass } = options;
+   
     super({ type: "EthereumEip712Signature2021" });
 
     this.proof = {
@@ -39,12 +31,7 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     if (signer) {
       this.signer = signer;
     }
-    this.verificationMethod = verificationMethod;
     this.proofSignatureKey = "proofValue";
-
-    if (date) {
-      this.date = new Date(date).getTime();
-    }
   }
 
   async createProof(options: CreateProofOptions): Promise<any> {
@@ -52,7 +39,16 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
       type: this.type,
     };
 
-    let date = this.date;
+    let embed = options.embed ?? true;
+
+    if (
+      options.verificationMethod !== undefined &&
+      typeof options.verificationMethod !== "string"
+    ) {
+      throw TypeError(`"verificationMethod" must be a URI string`);
+    }
+
+    let date: string | number = options.date ? new Date(options.date).getTime() : undefined;
     if (date === undefined) {
       date = Date.now();
     }
@@ -65,9 +61,7 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
       proof.created = date;
     }
 
-    if (this.verificationMethod !== undefined) {
-      proof.verificationMethod = this.verificationMethod;
-    }
+    proof.verificationMethod = options.verificationMethod;
 
     proof = await options.purpose.update(proof, {
       document: options.document,
@@ -95,6 +89,7 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     let signOptions: SuiteSignOptions = {
       proof: c14nProof,
       verifyData: c14nDocument as EIP712SignatureOptions,
+      embed: embed,
     };
 
     proof = await this.sign(signOptions);
@@ -133,14 +128,14 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
         domain: c14nDocument.domain,
         types: c14nDocument.types,
         message: c14nDocument.message,
-        primaryType: c14nDocument.primaryType
+        primaryType: c14nDocument.primaryType,
       });
 
       if (!verified) {
         throw Error(`Invalid signature`);
       }
 
-      if (!(await options.purpose.match(c14nProof), {}))) {
+      if (!(options.purpose.match(c14nProof, {}))) {
         throw Error(`Invalid purpose`);
       }
 
@@ -207,11 +202,13 @@ export class EthereumEip712Signature2021 extends suites.LinkedDataSignature {
     );
 
     proof[this.proofSignatureKey] = proofValue;
-    proof["eip712Domain"] = {
-      domain: options.verifyData.domain,
-      messageSchema: options.verifyData.types,
-      primaryType: options.verifyData.primaryType,
-    };
+    if (options.embed) {
+      proof["eip712Domain"] = {
+        domain: options.verifyData.domain,
+        messageSchema: options.verifyData.types,
+        primaryType: options.verifyData.primaryType,
+      };
+    }
     return proof;
   }
 
